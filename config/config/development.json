@@ -1,0 +1,45 @@
+{
+    "app_route": "http://192.168.0.177:3000/",
+    "site_name": "Rummy",  
+    "google_analytics": "",
+    "PORT": "3002",
+    "MAIL_HOST": "smtp.gmail.com",
+    "MAIL_PORT" : 587,
+    "MAIL_USERNAME" : "lampsmtp@gmail.com",
+    "MAIL_PASSWORD" : "cjrtyvsfjbkcgazn",    
+
+    "db": {
+        "database": "rummy",
+        "username": "root",
+        "password": "root",
+        "options": {
+            "timezone": "+05:30",
+            "dialect": "mysql",
+            "dialectOptions": {
+                "decimalNumbers": true
+            },
+            "port": 3306,
+            "pool": {
+                "max": 50,
+                "min": 0,
+                "idle": 500
+            },
+            "replication": {
+                "write": {
+                    "username": "root",
+                    "password": "root",
+                    "host": "localhost",
+                    "port": 3306
+                },
+                "read": [
+                    {
+                        "username": "root",
+                        "password": "root",
+                        "host": "localhost",
+                        "port": 3306
+                    }
+                ]
+            }
+        }
+    }
+}
