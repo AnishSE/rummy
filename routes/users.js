@@ -5,6 +5,8 @@ const bcrypt                      = require('bcryptjs');
 const saltRounds                  = 10;
 const salt                        = bcrypt.genSaltSync(saltRounds);
 const HTTPStatus                  = require('http-status');
+const jwt                         = require('jsonwebtoken');
+
 /* GET users listing. */
 
 module.exports = (app, wagner) => {
@@ -23,17 +25,21 @@ module.exports = (app, wagner) => {
         req.userObj = {
         	email : req.body.email
         }
+
         wagner.get('users').find(req).then(users => {
         	if(users){
         		if(bcrypt.compareSync(req.body.password, users.password)){
-	              	res.status(HTTPStatus.OK).json({ success: '1', message: "success", data: {
-		                //authtoken, vendorlist, profile :{
-                        email     : users.dataValues.email,
-                        first_name : users.dataValues.first_name,
-                        last_name  : users.dataValues.last_name,
+                    let data = {                        
+                        email          : users.dataValues.email,
+                        first_name     : users.dataValues.first_name,
+                        last_name      : users.dataValues.last_name,
                         mobile_number  : users.dataValues.mobile_number                
-		                
-	              	}});
+                    }
+
+                    jwt.sign({data},'secretkey', {expiresIn: '300s'},(err,token)=>{                        
+                        res.status(200).json({ success: '1', message: "success", data:data, token:token });
+                        //res.status(HTTPStatus.OK).json({ success: '1', message: "success", data:data,token:token });
+                    });
         		}
         	}else{
         		res.status(401).json({ success: '0', message: "failure", data: { "message" : "Incorrect username or password." } });
@@ -109,6 +115,37 @@ module.exports = (app, wagner) => {
             console.log(e);
           res.status(500).json({ success: '0', message: "failure", data: e });
         }
-    });    
+    });
+
+    /* Dummy route to check JWT token*/
+    router.post('/dashboard',verifyToken, (req,res) =>{        
+        jwt.verify(req.token,'secretkey',(err,authData) => {
+            if(err){
+                res.status(403).json({ success: '0', message: "failure", data: err.array() });
+            }else{    
+                res.status(200).json({ success: '1', message: 'Welcome to Dashboard', authData: authData });
+            }                
+        });
+    }); 
+
+    // Verify Token
+    function verifyToken(req,res,next){
+        // Get auth header value
+        const bearerHeader = req.headers['authorization'];
+
+        // Check if bearer is undefined
+        if(typeof bearerHeader !== 'undefined'){
+            // Split at the space
+            const bearer = bearerHeader.split(" ");
+            // Get token from array
+            const bearerToken = bearer[1];
+            // Set the token
+            req.token = bearerToken;
+            // Call Next Middleware
+            next();
+        }else{
+            res.sendStatus(403).json({ success: '0', message: "failure", data: 'Unauthorized Token' });
+        }
+    }   
 	return router;
 }
