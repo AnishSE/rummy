@@ -1,19 +1,18 @@
 require('dotenv').config();
-var createError     = require('http-errors');
-var express         = require('express');
-var path            = require('path');
-var cookieParser    = require('cookie-parser');
-var logger          = require('morgan');
-var bodyParser      = require('body-parser');
-var schedule        = require('node-schedule');
-var cors            = require('cors');
+const createError     = require('http-errors');
+const express         = require('express');
+const path            = require('path');
+const cookieParser    = require('cookie-parser');
+const logger          = require('morgan');
+const bodyParser      = require('body-parser');
+const schedule        = require('node-schedule');
+const cors            = require('cors');
+const ejsLayouts      = require("express-ejs-layouts");
+const wagner          = require('wagner-core');
+const helmet          = require('helmet');
+const sequelize       = require('./utils/db')(wagner);
 
-var ejsLayouts      = require("express-ejs-layouts");
-var app             = express();
-const wagner        = require('wagner-core');
-const helmet        = require('helmet');
-var bodyParser      = require('body-parser');
-const sequelize     = require('./utils/db')(wagner);
+var app               = express();
 
 const port = 3002;
 
