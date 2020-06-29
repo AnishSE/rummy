@@ -6,6 +6,7 @@ const saltRounds                  = 10;
 const salt                        = bcrypt.genSaltSync(saltRounds);
 const HTTPStatus                  = require('http-status');
 const jwt                         = require('jsonwebtoken');
+const validateToken 			  = require('../middleware/validate_token').validateToken;
 
 /* GET users listing. */
 
@@ -22,29 +23,16 @@ module.exports = (app, wagner) => {
         if(!errors.isEmpty()){
             return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
         }  
-        req.userObj = {
-        	email : req.body.email
-        }
-
-        wagner.get('users').find(req).then(users => {
-        	if(users){
-        		if(bcrypt.compareSync(req.body.password, users.password)){
-                    let data = {                        
-                        email          : users.dataValues.email,
-                        first_name     : users.dataValues.first_name,
-                        last_name      : users.dataValues.last_name,
-                        mobile_number  : users.dataValues.mobile_number                
-                    }
-
-                    jwt.sign({data},'secretkey', {expiresIn: '300s'},(err,token)=>{                        
-                        res.status(200).json({ success: '1', message: "success", data:data, token:token });
-                        //res.status(HTTPStatus.OK).json({ success: '1', message: "success", data:data,token:token });
-                    });
-        		}
-        	}else{
-        		res.status(401).json({ success: '0', message: "failure", data: { "message" : "Incorrect username or password." } });
-        	}      	
-        }) 
+        wagner.get('UserManager').login(req.body).then(user=>{
+        	if(user){            	
+                return res.status(200).json(user);
+            }
+            else{
+                return res.status(401).json(user);
+            }
+        }).catch(error=>{
+            next(error);
+        });
     });
 
 	router.post('/register', [
@@ -53,7 +41,6 @@ module.exports = (app, wagner) => {
         check('first_name').notEmpty().withMessage('firstname required').bail(),
         check('last_name').notEmpty().withMessage('lastname required').bail(),
         check('mobile_number').notEmpty().withMessage('mobile number required').bail().isLength({ min: 10 }).withMessage('Minimum 10 characters are required'),
-
     ], async (req, res, next)=> {
         try{ 
     		let errors = validationResult(req);
@@ -61,8 +48,7 @@ module.exports = (app, wagner) => {
                 return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
             }  
             req.body.password = bcrypt.hashSync(req.body.password, salt);
-            const users = await wagner.get('users').insert(req.body)
-        	console.log(users.dataValues);
+            const users = await wagner.get('UserManager').insert(req.body)        	
             const data = {
                 email     : users.dataValues.email,
                 first_name : users.dataValues.first_name,
@@ -98,10 +84,10 @@ module.exports = (app, wagner) => {
 	            return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
 	        }else{
 
-	            let user = await wagner.get('users')["find"](req);
+	            let user = await wagner.get('UserManager')["find"](req);
 	            console.log(user);
 	            if(user){
-	              let forgetPassword = await wagner.get('users').forgetPassword(user);
+	              let forgetPassword = await wagner.get('UserManager').forgetPassword(user);
 	              if(forgetPassword){
 	                res.status(HTTPStatus.OK).json({ success: '1', message: "Reset link sent on your mail.", data: '' });
 	              }else{
@@ -118,34 +104,33 @@ module.exports = (app, wagner) => {
     });
 
     /* Dummy route to check JWT token*/
-    router.post('/dashboard',verifyToken, (req,res) =>{        
-        jwt.verify(req.token,'secretkey',(err,authData) => {
-            if(err){
-                res.status(403).json({ success: '0', message: "failure", data: err.array() });
-            }else{    
-                res.status(200).json({ success: '1', message: 'Welcome to Dashboard', authData: authData });
-            }                
-        });
+    router.post('/dashboard',validateToken, (req,res,next) =>{    
+        return res.status(200).json({ success: '1', status_code: 200, message: 'Welcome to Dashboard', data: req.authData.data });
     }); 
 
-    // Verify Token
-    function verifyToken(req,res,next){
-        // Get auth header value
-        const bearerHeader = req.headers['authorization'];
-
-        // Check if bearer is undefined
-        if(typeof bearerHeader !== 'undefined'){
-            // Split at the space
-            const bearer = bearerHeader.split(" ");
-            // Get token from array
-            const bearerToken = bearer[1];
-            // Set the token
-            req.token = bearerToken;
-            // Call Next Middleware
-            next();
-        }else{
-            res.sendStatus(403).json({ success: '0', message: "failure", data: 'Unauthorized Token' });
+    router.post('/resetPassword',[
+    	check('old_password').notEmpty().withMessage('old password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
+    	check('new_password').notEmpty().withMessage('new password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
+    	check('confirm_password').notEmpty().withMessage('confirm password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required').custom((value, {req}) => (value === req.body.new_password)).withMessage('Confirm Password must match with New Password')	
+    ],validateToken, (req,res,next) => { 
+    	let errors = validationResult(req);
+        if(!errors.isEmpty()){
+            return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
         }
-    }   
+
+	    let params  = req.body;
+	    params.id   = req.authData.data.id;	         	
+	        
+	    wagner.get('UserManager').resetPassword(params).then(user => {
+	        if(user){            	
+	            return res.status(200).json(user);
+	        }else{
+	            return res.status(401).json(user);
+	        }
+	    }).catch(error=>{
+	        next(error);
+	    }); 	
+    }); 
+
 	return router;
 }
