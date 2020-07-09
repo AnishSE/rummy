@@ -1,4 +1,3 @@
-const Sequelize       = require('sequelize');
 const nodemailer      = require('nodemailer');
 const bcrypt          = require('bcryptjs');
 const saltRounds      = 10;
@@ -10,7 +9,9 @@ class UserManager {
 
     constructor(wagner) {
     	this.Users = wagner.get("Users");
+    	this.Tokens = wagner.get("Tokens");
     	this.Mail  = wagner.get("MailHelper");
+    	this.auth  = wagner.get('auth');
     }
 
 	find(req){
@@ -32,6 +33,21 @@ class UserManager {
 	      	} catch(error){
 	      		console.log("ABC");
 	        	//console.log(error);
+	        	reject(error);
+	        }
+	    })
+	}
+  
+  update(req){
+	    return new Promise(async (resolve, reject)=>{
+	      	try{
+		        let user  = await this.Users.update(
+		        	req.userObj,
+		        	{ where : req.conditons }
+		        );
+		        resolve(user)
+	      	} catch(error){
+	        	console.log(error);
 	        	reject(error);
 	        }
 	    })
@@ -64,12 +80,13 @@ class UserManager {
 	            let emailId   = req.email; 
 	            let password  = req.password;   
 	            let user      = await this.Users.findOne({where: {email : emailId } });  
-
+	            
 	            if (!user) {
 	                return({ success: '0', status_code : 401, message: "failure", data: { "message" : "Incorrect email or password." } });                       
 	            }else{
 	            		            
-		            if(bcrypt.compareSync(password, user.dataValues.password)){			            	
+		            if(bcrypt.compareSync(password, user.dataValues.password)){	
+
 		            	let data = {
 		            		id             : user.dataValues.id,
 			                email          : user.dataValues.email,
@@ -77,10 +94,17 @@ class UserManager {
                         	last_name      : user.dataValues.last_name,
                         	mobile_number  : user.dataValues.mobile_number                
 		            	}			            	
-		            	let token = await jwt.sign({ data: data }, JWT_KEY, { expiresIn: JWT_TOKEN_EXPIRES });
+		            	let token = await jwt.sign({ data: data }, JWT_KEY, { expiresIn: JWT_TOKEN_EXPIRES });		            	
 		            	if (!token){		                        
 		                    return({ success : '0', status_code	: 401, message: "failure", data : {"message" : "Expired Token"}});  
 		                }else{   
+		                		let params = {
+		                			userId:    user.dataValues.id,
+						            authToken: token
+						            //deviceToken : req.body.device_token
+						        }
+		                		let tokenQuery = await this.Tokens.create(params);
+		                		
 			                    return({
 			                        success     : '1',
 			                        status_code : 200,

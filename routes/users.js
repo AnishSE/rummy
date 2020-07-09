@@ -6,11 +6,14 @@ const saltRounds                  = 10;
 const salt                        = bcrypt.genSaltSync(saltRounds);
 const HTTPStatus                  = require('http-status');
 const jwt                         = require('jsonwebtoken');
-const validateToken 			  = require('../middleware/validate_token').validateToken;
+// const validateToken 			  = require('../middleware/AuthMiddleware').validateToken;
 
 /* GET users listing. */
 
 module.exports = (app, wagner) => {
+
+    let authMiddleware = wagner.get('auth');
+    
 	router.get('/', function(req, res, next) {
 	  res.send('respond with a resource');
 	});
@@ -21,7 +24,9 @@ module.exports = (app, wagner) => {
     ], (req, res, next)=> { 
 		let errors = validationResult(req);
         if(!errors.isEmpty()){
-            return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
+            let lasterr = errors.array().pop();
+            lasterr.message = lasterr.msg + ": " + lasterr.param.replace("_"," ");    
+            return res.status(405).json({ success: '0', message: "failure", data: lasterr });
         }  
         wagner.get('UserManager').login(req.body).then(user=>{
         	if(user){            	
@@ -32,6 +37,7 @@ module.exports = (app, wagner) => {
             }
         }).catch(error=>{
             next(error);
+            res.status(500).json({ success: '0', message: "failure", data: error });
         });
     });
 
@@ -45,7 +51,9 @@ module.exports = (app, wagner) => {
         try{ 
     		let errors = validationResult(req);
             if(!errors.isEmpty()){
-                return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
+                let lasterr = errors.array().pop();
+                lasterr.message = lasterr.msg + ": " + lasterr.param.replace("_"," ");
+                return res.status(405).json({ success: '0', message: "failure", data: lasterr });
             }  
             req.body.password = bcrypt.hashSync(req.body.password, salt);
             const users = await wagner.get('UserManager').insert(req.body)        	
@@ -81,11 +89,13 @@ module.exports = (app, wagner) => {
 	        }
 	        const errors = validationResult(req);
 	        if (!errors.isEmpty()) {
-	            return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
+                let lasterr = errors.array().pop();
+                lasterr.message = lasterr.msg + ": " + lasterr.param.replace("_"," ");
+                return res.status(405).json({ success: '0', message: "failure", data: lasterr });
 	        }else{
 
 	            let user = await wagner.get('UserManager')["find"](req);
-	            console.log(user);
+
 	            if(user){
 	              let forgetPassword = await wagner.get('UserManager').forgetPassword(user);
 	              if(forgetPassword){
@@ -104,7 +114,7 @@ module.exports = (app, wagner) => {
     });
 
     /* Dummy route to check JWT token*/
-    router.post('/dashboard',validateToken, (req,res,next) =>{    
+    router.post('/dashboard',authMiddleware['verifyAccessToken'].bind(authMiddleware), (req,res,next) =>{    
         return res.status(200).json({ success: '1', status_code: 200, message: 'Welcome to Dashboard', data: req.authData.data });
     }); 
 
@@ -112,10 +122,12 @@ module.exports = (app, wagner) => {
     	check('old_password').notEmpty().withMessage('old password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
     	check('new_password').notEmpty().withMessage('new password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
     	check('confirm_password').notEmpty().withMessage('confirm password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required').custom((value, {req}) => (value === req.body.new_password)).withMessage('Confirm Password must match with New Password')	
-    ],validateToken, (req,res,next) => { 
+    ],authMiddleware['verifyAccessToken'].bind(authMiddleware), (req,res,next) => { 
     	let errors = validationResult(req);
         if(!errors.isEmpty()){
-            return res.status(405).json({ success: '0', message: "failure", data: errors.array() });
+            let lasterr = errors.array().pop();
+            lasterr.message = lasterr.msg + ": " + lasterr.param.replace("_"," ");
+            return res.status(405).json({ success: '0', message: "failure", data: lasterr });
         }
 
 	    let params  = req.body;
@@ -131,6 +143,20 @@ module.exports = (app, wagner) => {
 	        next(error);
 	    }); 	
     }); 
+
+    router.post('/logout', authMiddleware['verifyAccessToken'].bind(authMiddleware), async (req,res,next) => { 
+        try{
+            let token = await wagner.get('Tokens').destroy({where: { authToken: req.token } })
+            if(token){
+              return res.status(200).json({ success: '1', message: "success", data:{"message": "User Logout successfully"} });
+            }else{
+              return res.status(403).json({ success: '0', message: "failure", data:{"message":'Invalid device token!'} });
+            }          
+        }
+        catch(e){          
+          res.status(500).json({ success: '0', message: "failure", data: e });
+        }
+    });    
 
 	return router;
 }

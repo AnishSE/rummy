@@ -4,7 +4,7 @@
     "google_analytics": "",
     "PORT": "3002",
     "JWT_KEY": "secretkey",
-    "JWT_TOKEN_EXPIRES" : "3600s",
+    "JWT_TOKEN_EXPIRES" : "31556952s",
     "MAIL_HOST": "smtp.gmail.com",
     "MAIL_PORT" : 587,
     "MAIL_USERNAME" : "lampsmtp@gmail.com",

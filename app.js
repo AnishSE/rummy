@@ -35,6 +35,7 @@ app.use(ejsLayouts);
 require('./utils/dependencies')(wagner);
 require("./models")(sequelize, wagner);
 require('./manager')(wagner);
+require('./middleware')(wagner);
 
 app.use(function(err, req, res, next) {
   res.locals.message     = err.message;
