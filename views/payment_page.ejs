@@ -1,0 +1,46 @@
+<div class="pay">
+    <button id="rzp-button1">Pay with RazorPay</button>
+</div>
+<div class="status"></div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    var key_id = '<%= key_id %>';
+    var amount = '<%= amount %>';
+    var order_id = '<%= orderId %>';
+    
+    var options = {
+        "key": key_id,
+        "amount": amount, // 2000 paise = INR 20
+        "name": "Rummy",
+        "description": "Rummy Description",
+        //"image": "/your_logo.png",
+        "handler": function (response){ 
+            $.post("/users/capture/"+order_id+"/"+amount, response, function(data,status){
+                //alert("Data: " + data + "\nStatus: " + status);
+                $(".pay").css("display","none");
+                if(data.success == 1){
+                    $(".status").text("Successful payment at RazorPay");
+                }else{
+                    $(".status").text("Unsuccessful payment at RazorPay");
+                }
+            });
+        },
+        //"prefill": {
+        //    "name": "Charul",
+        //    "email": "charul.singla417@gmail.com"
+        //},
+        //"notes": {
+        //    "address": "Hello World"
+        //},
+        "theme": {
+            "color": "#F87F54"
+        }
+    };
+    var rzp1 = new Razorpay(options);
+
+    document.getElementById('rzp-button1').onclick = function(e){
+        rzp1.open();
+        e.preventDefault();
+    }
+</script>

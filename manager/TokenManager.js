@@ -11,8 +11,8 @@ module.exports = class TokenManager {
     insert(req){
         return new Promise(async (resolve, reject)=>{
             try{
-              await this.Token.deleteOne({'deviceToken': req.tokenObj.deviceToken });
-              // let searchToken = await this.Token.updateOne({ 'deviceToken': req.tokenObj.deviceToken },req.tokenObj, {upsert: true,setDefaultsOnInsert: true})
+              await this.Token.deleteOne({'userId': req.tokenObj.userId });
+              
               let token = await this.Token.create(req.tokenObj);
               resolve(token);
             } catch(error){
@@ -25,7 +25,7 @@ module.exports = class TokenManager {
     find(req){
       return new Promise(async (resolve, reject)=>{
           try{
-            let token =  await this.Token.findOne({'authToken': req });
+            let token =  await this.Token.findOne({where: req });
             resolve(token);
 
           } catch(error){
@@ -33,13 +33,13 @@ module.exports = class TokenManager {
             reject(error);
           }
       });
-  };
+    };
 
     remove(req){
       return new Promise(async (resolve, reject)=>{
           try{
 
-            let token = await this.Token.deleteOne({'deviceToken': req.body.device_token })
+            let token = await this.Token.deleteOne({where: req })
             resolve(token);
 
           } catch(error){
@@ -47,6 +47,21 @@ module.exports = class TokenManager {
             reject(error);
           }
       });
-  };
+    };
+
+    update(req){
+      return new Promise(async (resolve, reject)=>{
+          try{
+            let token  = await this.Token.update(
+              req.tokenObj,
+              { where : req.conditons }
+            );
+            resolve(token)
+          } catch(error){
+            console.log(error);
+            reject(error);
+          }
+      })
+    };
 
 };

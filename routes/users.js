@@ -6,7 +6,17 @@ const saltRounds                  = 10;
 const salt                        = bcrypt.genSaltSync(saltRounds);
 const HTTPStatus                  = require('http-status');
 const jwt                         = require('jsonwebtoken');
+const Razorpay 					  = require('razorpay');
+const axios  					  = require('axios');
+const config  					  = require('config');
+const RAZORPAY_KEY_ID 			  = config.get('RAZORPAY_KEY_ID');
+const RAZORPAY_KEY_SECRET         = config.get('RAZORPAY_KEY_SECRET');
+
 // const validateToken 			  = require('../middleware/AuthMiddleware').validateToken;
+const instance = new Razorpay({
+  key_id: RAZORPAY_KEY_ID,
+  key_secret: RAZORPAY_KEY_SECRET
+})
 
 /* GET users listing. */
 
@@ -156,7 +166,117 @@ module.exports = (app, wagner) => {
         catch(e){          
           res.status(500).json({ success: '0', message: "failure", data: e });
         }
-    });    
+    });
+
+    router.post('/guestLogin', [
+        check('device_token').notEmpty().withMessage('Device Token is required'),
+        check('device_type').notEmpty().withMessage('Device Type is required'),
+        check('user_language').notEmpty().withMessage('User Language is required')                        
+    ], (req, res, next)=> { 
+		let errors = validationResult(req);
+        if(!errors.isEmpty()){
+            let lasterr = errors.array().pop();
+            lasterr.message = lasterr.msg + ": " + lasterr.param.replace("_"," ");    
+            return res.status(405).json({ success: '0', message: "failure", data: lasterr });
+        }  
+        wagner.get('UserManager').guest_login(req.body).then(user=>{
+        	if(user){            	
+                return res.status(200).json(user);
+            }
+            else{
+                return res.status(401).json(user);
+            }
+        }).catch(error=>{
+            next(error);
+            res.status(500).json({ success: '0', message: "failure", data: error });
+        });
+    });
+
+
+    router.get('/order_page', (req,res,next) => { 
+    	res.render('order_page');
+    });
+    
+
+
+    router.post('/create_order', async (req, res,next) => {
+		let options = {
+		  amount: (req.body.amount)*100,  
+		  currency: "INR",		  
+		};
+		instance.orders.create(options, function(err, order) {
+		  	if(err){
+		  		console.log(err);
+		  		res.status(500).json({ success: '0', message: "failure", data: err });
+		  	}else{		  		
+		  		let paymentObj = {
+		  			"userId": 31,
+		  			"orderId": order.id,
+					"amount": order.amount/100		  			
+		  		}
+		  		let req = {paymentObj};
+		  		wagner.get('PaymentDetailManager')["insert"](req);
+		  		res.redirect('payment_page/'+order.id);
+		  	}
+		});  	
+		
+	});
+
+    router.get('/payment_page/:orderId', async (req,res,next) => {
+    	let param = {    		
+    		"orderId": req.params.orderId
+    	}
+    	// let paymentDetail = await wagner.get('PaymentDetailManager').find(param);
+    	let paymentDetail = await wagner.get('PaymentDetails').findOne({where:param});
+    	//console.log(paymentDetail);   
+        if(paymentDetail){ 
+        	console.log(paymentDetail);   
+	    	//paymentDetail.dataValues.amount,
+	    }else{
+	    	
+	    }
+	    
+    	res.render('payment_page',{
+    		"key_id" : RAZORPAY_KEY_ID,
+    		"orderId": req.params.orderId,	    
+    		"amount" : 200		
+    	});
+    });
+
+    router.post('/capture/:orderId/:amount', async (req, res,next) => {
+	  	let callback =  (err, resp) => {
+		    if(!!err){
+		      
+		      let params = {
+		      	paymentObj :{
+		      		"paymentId":req.body.razorpay_payment_id,
+		      		"paymentStatus": "FAILED"
+		      	},
+		      	conditons : {
+		      		"orderId":req.params.orderId
+		      	}
+		      }
+		      let paymentDetail = wagner.get('PaymentDetailManager').update(params);
+		      res.send({success: '0'});
+		      console.log("Unsuccessful payment at RazorPay");
+		    }else{
+		      
+		      let params = {
+		      	paymentObj :{
+		      		"paymentId":req.body.razorpay_payment_id,
+		      		"paymentStatus": "SUCCESS"
+		      	},
+		      	conditons : {
+		      		"orderId":req.params.orderId
+		      	}
+		      }
+		      let paymentDetail = wagner.get('PaymentDetailManager').update(params);
+		      res.send({success: '1'});
+		      console.log("Successful payment at RazorPay");
+		    }
+	  	}
+	  	instance.payments.capture(req.body.razorpay_payment_id, req.params.amount, callback);
+	});	
 
 	return router;
 }

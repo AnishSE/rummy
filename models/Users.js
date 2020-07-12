@@ -13,33 +13,32 @@ module.exports      = function(sequelize, DataTypes) {
     },
     first_name       : {
       type          : DataTypes.STRING(255),
-      allowNull     : false
+      allowNull     : true
     },
     last_name        : {
       type          : DataTypes.STRING(255),
-      allowNull     : false
+      allowNull     : true
     },      
 
     mobile_number   : {
       type          : DataTypes.STRING(20),
-      allowNull     : false
+      allowNull     : true
     },
     email           : {
       type          : DataTypes.STRING(255),
-      allowNull     : false
+      allowNull     : true
     },      
-
     password        : {
       type          : DataTypes.STRING(255),
-      allowNull     : false
+      allowNull     : true
     }, 
     user_language   : {
       type          : DataTypes.STRING(255),
       allowNull     : true
     },
-    device_os : {
-      type          : DataTypes.INTEGER(1),
-      allowNull     : false,
+    device_type : {
+      type          : DataTypes.ENUM,      
+      values        : ['0', '1', '2'],
       defaultValue  : 0
     }, 
     device_token    : {

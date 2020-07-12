@@ -1,5 +1,5 @@
 module.exports      = function(sequelize, DataTypes) {
-  var Tokens         = sequelize.define('Tokens', {
+  var PaymentDetails         = sequelize.define('PaymentDetails', {
     id              : {
       type          : DataTypes.INTEGER(11),
       allowNull     : false,
@@ -10,27 +10,38 @@ module.exports      = function(sequelize, DataTypes) {
       type          : DataTypes.INTEGER(11),
       allowNull     : false,
     },
-    authToken       : {
+    orderId       : {
+      type          : DataTypes.STRING(255),
+      allowNull     : false,
+    },
+    amount       : {
+      type          : DataTypes.DECIMAL(10,5),
+      allowNull     : false,
+    },
+    paymentId       : {
       type          : DataTypes.STRING(255),
       allowNull     : true,
     },
-    createdAt: {
-      type          : DataTypes.DATE,
+    paymentStatus       : {
+      type          : DataTypes.STRING(255),
       allowNull     : true,
-      defaultValue  : sequelize.literal('CURRENT_TIMESTAMP')
     },
-    updatedAt       : {
+    signature     : {
+      type          : DataTypes.STRING(255),
+      allowNull     : true,
+    },                                           
+    createdAt: {
       type          : DataTypes.DATE,
       allowNull     : true,
       defaultValue  : sequelize.literal('CURRENT_TIMESTAMP')
     }
   },  
   {
-    tableName       : 'tokens',
+    tableName       : 'payment_details',
     paranoid        : true,
-    charset         : 'utf8',
-    collate         : 'utf8_general_ci', 
-    freezeTableName : true,
+    // charset         : 'utf8',
+    // collate         : 'utf8_general_ci', 
+    // freezeTableName : true,
     timestamps      : false,
     classMethods: {
       associate: function(models) {
@@ -38,5 +49,5 @@ module.exports      = function(sequelize, DataTypes) {
       }
     }    
   });
-  return Tokens;
+  return PaymentDetails;
 };

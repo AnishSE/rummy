@@ -31,9 +31,7 @@ class UserManager {
 		        let user  = await this.Users.create(req,{raw:true});
 		        resolve(user)
 	      	} catch(error){
-	      		console.log("ABC");
-	        	//console.log(error);
-	        	reject(error);
+	      		reject(error);
 	        }
 	    })
 	}
@@ -152,6 +150,75 @@ class UserManager {
         } catch (e) {            
             return({ success : '0', status_code: 422, message : "failure", data : { "message" : e }}); 
         }
+    }
+
+    async guest_login(req) {  		
+	        try {
+	            const JWT_KEY = config.get('JWT_KEY');
+	            const JWT_TOKEN_EXPIRES = config.get('JWT_TOKEN_EXPIRES');
+	                     
+	            let user      = await this.Users.findOne({where: {device_token : req.device_token } });  
+	            
+	            if (!user) {
+	            	let params = {
+						device_token : req.device_token,
+						device_type  : req.device_type,
+						user_language: req.user_language
+					}
+	            	let userQuery = await this.Users.create(params);
+	            	
+	            	let token = await jwt.sign({ data: params }, JWT_KEY, { expiresIn: JWT_TOKEN_EXPIRES });		
+	            	if (!token){		                        
+		                return({ success : '0', status_code	: 401, message: "failure", data : {"message" : "Expired Token"}});  
+		            }else{   
+		                let params = {
+		                	userId:    userQuery.dataValues.id,
+						    authToken: token						            
+						}
+		                let tokenQuery = await this.Tokens.create(params);
+		                		
+			            return({
+			                        success     : '1',
+			                        status_code : 200,
+			                        message     : "success",
+			                        data        : {
+			                        	userId:    userQuery.dataValues.id
+			                        },                
+			                        token       : token		                            
+			            });
+			        }            		                
+	            }else{
+	            		let data = {
+		            		id             : user.dataValues.id,
+			                device_token   : user.dataValues.device_token,
+                        	device_type    : user.dataValues.device_type,                        	
+		            	}			            	
+		            	let token = await jwt.sign({ data: data }, JWT_KEY, { expiresIn: JWT_TOKEN_EXPIRES });		            	
+		            	if (!token){		                        
+		                    return({ success : '0', status_code	: 401, message: "failure", data : {"message" : "Expired Token"}});  
+		                }else{   
+		                		let params = {
+		                			tokenObj: {			                			
+							            authToken: token							            
+							        },
+							        condition: {
+							        	userId:    user.dataValues.id,
+							        }
+						        }
+		                		let tokenQuery = await this.Tokens.update(params);
+		                		
+			                    return({
+			                        success     : '1',
+			                        status_code : 200,
+			                        message     : "success",
+			                        data        : data,                
+			                        token       : token		                            
+			                    });
+			            }			            		            
+		        }
+	        } catch (e) {
+	            return({ success : '0', status_code: 422, message : "failure", data : { "message" : e }});                          
+	        }    	
     }
 
 }
