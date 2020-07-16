@@ -1,0 +1,100 @@
+<style>
+    body{
+        align:center;        
+    }
+    form{
+        border: 2px solid #000;
+        padding:10px;
+        display: inline-block;
+        margin-top: 100px;
+        width: 250px;
+    }
+    .form-control{
+        width:100%;
+        padding-right:-20px;
+    }
+    .container{
+        max-width:200px;
+        box-sizing: content-box;
+        margin:0 auto;
+    }
+    label.error{
+        color:red;
+    }
+</style>
+<div class="container">
+    <form class="needs-validation" name="register_form" method="POST" action="register">
+        <div class="form-group">
+            <label for="first_name">First Name</label><br/>
+            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Enter First Name"/><br/><br/>
+        </div>    
+        <div class="form-group">
+            <label for="last_name">Last Name</label><br/>
+            <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Enter Last Name"/><br/><br/>            
+        </div>    
+        <div class="form-group">
+            <label for="email">Email Address</label><br/>
+            <input type="text" class="form-control" id="email" name="email" placeholder="Enter Email Address"/><br/><br/>            
+        </div>
+        <div class="form-group">    
+            <label for="mobile_number">Mobile Number</label><br/>
+            <input type="text" class="form-control" id="mobile_number" name="mobile_number" placeholder="Enter Mobile Number"/><br/><br/>            
+        <div>
+        <div class="form-group">
+            <label for="password">Password</label><br/>
+            <input type="password" class="form-control" id="password" name="password" placeholder="Enter Password"/><br/><br/>            
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary" id="register_btn">Register</button>
+        </div>    
+    </form>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.1/jquery.validate.min.js"></script>
+<script>
+    $(function() {
+      $("form[name='register_form']").validate({    
+        rules: {
+          first_name: "required",
+          last_name: "required",
+          email: {
+            required: true,
+            email: true
+          },
+          mobile_number: "required",
+          password: {
+            required: true,
+            minlength: 6
+          }
+        },
+        messages: {
+          first_name: "Please enter your firstname",
+          last_name: "Please enter your lastname",
+          password: {
+            required: "Please provide a password",
+            minlength: "Your password must be at least 6 characters long"
+          },
+          email: "Please enter a valid email address",
+          mobile_number: "Please enter a valid mobile number"
+        },
+        submitHandler: function(form) {
+            //form.submit();     
+            $.ajax({
+                url: form.action,
+                type: form.method,
+                data: $(form).serialize(),
+                success: function(response) {
+                    if(response.success == 1){
+                        $("form[name='register_form']").css("display","none");
+                        $(".container").html("<h1>Register Successfully<h1>");
+                        $(".container").css("max-width","400px");
+                    }else{
+                        $("form[name='register_form']").css("display","none");
+                        $(".container").html("<h1>"+response.data.message+"<h1>");
+                    }
+                }            
+            });   
+        }
+      });
+    });
+</script>

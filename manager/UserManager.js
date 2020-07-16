@@ -96,10 +96,10 @@ class UserManager {
 		            	if (!token){		                        
 		                    return({ success : '0', status_code	: 401, message: "failure", data : {"message" : "Expired Token"}});  
 		                }else{   
+		                		let deleteQuery = await this.Tokens.deleteOne({where: {'userId': user.dataValues.id} });
 		                		let params = {
 		                			userId:    user.dataValues.id,
-						            authToken: token
-						            //deviceToken : req.body.device_token
+						            authToken: token						            
 						        }
 		                		let tokenQuery = await this.Tokens.create(params);
 		                		
@@ -171,6 +171,7 @@ class UserManager {
 	            	if (!token){		                        
 		                return({ success : '0', status_code	: 401, message: "failure", data : {"message" : "Expired Token"}});  
 		            }else{   
+		            	let deleteQuery = await this.Tokens.deleteOne({where: {'userId': userQuery.dataValues.id} });
 		                let params = {
 		                	userId:    userQuery.dataValues.id,
 						    authToken: token						            
