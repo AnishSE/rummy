@@ -13,5 +13,10 @@ module.exports = function(wagner) {
     	var PaymentDetailManager = require('./PaymentDetailManager');
     	return new PaymentDetailManager(wagner);
   	});
+
+    wagner.factory('GameManager', function() {
+      var GameManager = require('./GameManager');
+      return new GameManager(wagner);
+    });    
 }
 

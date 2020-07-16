@@ -6,9 +6,9 @@ module.exports = (app, wagner) => {
 	});
 
 	const users  = require('./users')(app, wagner);
-
+	const games  = require('./games')(app, wagner);
 	app.use('/users', users);
-
+	app.use('/games', games);
 }
 
 
