@@ -27,6 +27,10 @@ module.exports = (app, wagner) => {
 	router.get('/', function(req, res, next) {
 	  res.send('respond with a resource');
 	});
+
+    router.get('/register', function(req, res, next) {
+      res.render('register');
+    });
 	
 	router.post('/login', [
         check('email').notEmpty().withMessage('Email is required').bail().isEmail().withMessage('Email is not valid'),
