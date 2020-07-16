@@ -99,7 +99,7 @@ class UserManager {
 		                		let deleteQuery = await this.Tokens.deleteOne({where: {'userId': user.dataValues.id} });
 		                		let params = {
 		                			userId:    user.dataValues.id,
-						            authToken: token						            
+						            authToken: token						         
 						        }
 		                		let tokenQuery = await this.Tokens.create(params);
 		                		
