@@ -132,6 +132,36 @@ module.exports = (app, wagner) => {
         return res.status(200).json({ success: '1', status_code: 200, message: 'Welcome to Dashboard', data: req.authData.data });
     }); 
 
+    router.get('/changePassword/:id', function(req, res, next) {
+      res.render('change_password');
+    });
+
+    router.post('/changePassword',[
+        check('old_password').notEmpty().withMessage('old password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
+        check('new_password').notEmpty().withMessage('new password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
+        check('confirm_password').notEmpty().withMessage('confirm password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required').custom((value, {req}) => (value === req.body.new_password)).withMessage('Confirm Password must match with New Password')  
+    ], (req,res,next) => { 
+        let errors = validationResult(req);
+        if(!errors.isEmpty()){
+            let lasterr = errors.array().pop();
+            lasterr.message = lasterr.msg + ": " + lasterr.param.replace("_"," ");
+            return res.status(405).json({ success: '0', message: "failure", data: lasterr });
+        }
+
+        let params  = req.body;
+        params.id   = req.body.user_id;             
+            
+        wagner.get('UserManager').resetPassword(params).then(user => {
+            if(user){               
+                return res.status(200).json(user);
+            }else{
+                return res.status(401).json(user);
+            }
+        }).catch(error=>{
+            next(error);
+        });     
+    });
+
     router.post('/resetPassword',[
     	check('old_password').notEmpty().withMessage('old password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
     	check('new_password').notEmpty().withMessage('new password is required').bail().isLength({ min: 6 }).withMessage('Minimum 6 characters are required'),
